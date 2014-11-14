@@ -37,21 +37,19 @@
 
 #include <pdal/FileUtils.hpp>
 
-#include <pdal/kernel/Kernel.hpp>
+#include "Kernel.hpp"
 
 namespace pdal
 {
-namespace kernel
-{
 
-class PDAL_DLL View : public Kernel
+class PDAL_DLL ViewKernel : public Kernel
 {
 public:
-    SET_KERNEL_NAME("drivers.view.kernel", "View Kernel")
-    SET_KERNEL_LINK("http://pdal.io/kernels/drivers.view.kernel.html")
+    SET_KERNEL_NAME("kernels.view", "View Kernel")
+    SET_KERNEL_LINK("http://pdal.io/kernels/kernels.view.html")
     SET_KERNEL_ENABLED(true)
 
-    View();
+    ViewKernel();
     int execute();
 
 private:
@@ -64,5 +62,4 @@ private:
     std::string m_pointIndexes;
 };
 
-} // kernel
 } // pdal

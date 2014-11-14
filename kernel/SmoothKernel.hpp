@@ -37,21 +37,19 @@
 
 #include <pdal/FileUtils.hpp>
 
-#include <pdal/kernel/Kernel.hpp>
+#include "Kernel.hpp"
 
 namespace pdal
 {
-namespace kernel
-{
 
-class PDAL_DLL Ground : public Kernel
+class PDAL_DLL SmoothKernel : public Kernel
 {
 public:
-    SET_KERNEL_NAME("drivers.kernel.ground", "Ground Kernel")
-    SET_KERNEL_LINK("http://pdal.io/kernels/drivers.kernel.ground.html")
+    SET_KERNEL_NAME("kernels.smooth", "Smooth Kernel")
+    SET_KERNEL_LINK("http://pdal.io/kernels/kernels.smooth.html")
     SET_KERNEL_ENABLED(true)
 
-    Ground();
+    SmoothKernel() {};
     int execute();
 
 private:
@@ -62,15 +60,6 @@ private:
 
     std::string m_inputFile;
     std::string m_outputFile;
-    double m_maxWindowSize;
-    double m_slope;
-    double m_maxDistance;
-    double m_initialDistance;
-    double m_cellSize;
-    double m_base;
-    bool m_exponential;
-//    bool m_bCompress;  // Currently unused
 };
 
-} // kernel
 } // pdal

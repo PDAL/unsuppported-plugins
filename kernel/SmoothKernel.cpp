@@ -33,36 +33,19 @@
 * OF SUCH DAMAGE.
 ****************************************************************************/
 
-#include "Ground.hpp"
+#include "SmoothKernel.hpp"
 #include "../filters/PCLBlock.hpp"
-#include <pdal/kernel/KernelFactory.hpp>
+#include "KernelFactory.hpp"
 
 #include "../io/buffer/BufferReader.hpp"
 
-CREATE_KERNEL_PLUGIN(ground, pdal::kernel::Ground)
+CREATE_KERNEL_PLUGIN(smooth, pdal::SmoothKernel)
 
 namespace pdal
 {
-namespace kernel
-{
-
-Ground::Ground()
-    : Kernel()
-    , m_inputFile("")
-    , m_outputFile("")
-    , m_maxWindowSize(33)
-    , m_slope(1)
-    , m_maxDistance(2.5)
-    , m_initialDistance(0.15)
-    , m_cellSize(1)
-    , m_base(2)
-    , m_exponential(true)
-{
-    return;
-}
 
 
-void Ground::validateSwitches()
+void SmoothKernel::validateSwitches()
 {
     if (m_inputFile == "")
     {
@@ -78,7 +61,7 @@ void Ground::validateSwitches()
 }
 
 
-void Ground::addSwitches()
+void SmoothKernel::addSwitches()
 {
     po::options_description* file_options = new po::options_description("file options");
 
@@ -86,13 +69,6 @@ void Ground::addSwitches()
     ("input,i", po::value<std::string>(&m_inputFile)->default_value(""), "input file name")
     ("output,o", po::value<std::string>(&m_outputFile)->default_value(""), "output file name")
 //        ("compress,z", po::value<bool>(&m_bCompress)->zero_tokens()->implicit_value(true), "Compress output data (if supported by output format)")
-    ("maxWindowSize", po::value<double>(&m_maxWindowSize)->default_value(33), "max window size")
-    ("slope", po::value<double>(&m_slope)->default_value(1), "slope")
-    ("maxDistance", po::value<double>(&m_maxDistance)->default_value(2.5), "max distance")
-    ("initialDistance", po::value<double>(&m_initialDistance)->default_value(0.15, "0.15"), "initial distance")
-    ("cellSize", po::value<double>(&m_cellSize)->default_value(1), "cell size")
-    ("base", po::value<double>(&m_base)->default_value(2), "base")
-    ("exponential", po::value<bool>(&m_exponential)->default_value(true), "exponential?")
     ;
 
     addSwitchSet(file_options);
@@ -101,20 +77,20 @@ void Ground::addSwitches()
     addPositionalSwitch("output", 1);
 }
 
-std::unique_ptr<Stage> Ground::makeReader(Options readerOptions)
+std::unique_ptr<Stage> SmoothKernel::makeReader(Options readerOptions)
 {
     if (isDebug())
     {
-        readerOptions.add<bool>("debug", true);
-        boost::uint32_t verbosity(getVerboseLevel());
+        readerOptions.add("debug", true);
+        uint32_t verbosity(getVerboseLevel());
         if (!verbosity)
             verbosity = 1;
 
-        readerOptions.add<boost::uint32_t>("verbose", verbosity);
-        readerOptions.add<std::string>("log", "STDERR");
+        readerOptions.add("verbose", verbosity);
+        readerOptions.add("log", "STDERR");
     }
 
-    Stage* stage = AppSupport::makeReader(m_inputFile);
+    Stage* stage = KernelSupport::makeReader(m_inputFile);
     stage->setOptions(readerOptions);
     std::unique_ptr<Stage> reader_stage(stage);
 
@@ -122,14 +98,14 @@ std::unique_ptr<Stage> Ground::makeReader(Options readerOptions)
 }
 
 
-int Ground::execute()
+int SmoothKernel::execute()
 {
     PointContext ctx;
 
     Options readerOptions;
-    readerOptions.add<std::string>("filename", m_inputFile);
-    readerOptions.add<bool>("debug", isDebug());
-    readerOptions.add<boost::uint32_t>("verbose", getVerboseLevel());
+    readerOptions.add("filename", m_inputFile);
+    readerOptions.add("debug", isDebug());
+    readerOptions.add("verbose", getVerboseLevel());
 
     std::unique_ptr<Stage> readerStage = makeReader(readerOptions);
 
@@ -146,40 +122,29 @@ int Ground::execute()
     bufferReader.setOptions(readerOptions);
     bufferReader.addBuffer(input_buffer);
 
-    Options groundOptions;
+    Options smoothOptions;
     std::ostringstream ss;
     ss << "{";
     ss << "  \"pipeline\": {";
     ss << "    \"filters\": [{";
-    ss << "      \"name\": \"ProgressiveMorphologicalFilter\",";
-    ss << "      \"setMaxWindowSize\": " << m_maxWindowSize << ",";
-    ss << "      \"setSlope\": " << m_slope << ",";
-    ss << "      \"setMaxDistance\": " << m_maxDistance << ",";
-    ss << "      \"setInitialDistance\": " << m_initialDistance << ",";
-    ss << "      \"setCellSize\": " << m_cellSize << ",";
-    ss << "      \"setBase\": " << m_base << ",";
-    ss << "      \"setExponential\": " << m_exponential;
+    ss << "      \"name\": \"MovingLeastSquares\"";
     ss << "      }]";
     ss << "    }";
     ss << "}";
     std::string json = ss.str();
-    groundOptions.add<std::string>("json", json);
-    groundOptions.add<bool>("debug", isDebug());
-    groundOptions.add<boost::uint32_t>("verbose", getVerboseLevel());
+    smoothOptions.add("json", json);
+    smoothOptions.add("debug", isDebug());
+    smoothOptions.add("verbose", getVerboseLevel());
 
-    std::unique_ptr<Stage> groundStage(new filters::PCLBlock());
-    groundStage->setInput(&bufferReader);
-    groundStage->setOptions(groundOptions);
-
-    // the PCLBlock groundStage consumes the BufferReader rather than the
-    // readerStage
-    groundStage->setInput(&bufferReader);
+    std::unique_ptr<Stage> smoothStage(new filters::PCLBlock());
+    smoothStage->setOptions(smoothOptions);
+    smoothStage->setInput(&bufferReader);
 
     Options writerOptions;
-    writerOptions.add<std::string>("filename", m_outputFile);
+    writerOptions.add("filename", m_outputFile);
     setCommonOptions(writerOptions);
 
-    std::unique_ptr<Writer> writer(AppSupport::makeWriter(m_outputFile, groundStage.get()));
+    std::unique_ptr<Writer> writer(KernelSupport::makeWriter(m_outputFile, smoothStage.get()));
     writer->setOptions(writerOptions);
 
     std::vector<std::string> cmd = getProgressShellCommand();
@@ -189,17 +154,21 @@ int Ground::execute()
 
     writer->setUserCallback(callback);
 
-    for (auto pi: getExtraStageOptions())
+    std::map<std::string, Options> extra_opts = getExtraStageOptions();
+    std::map<std::string, Options>::iterator pi;
+    for (pi = extra_opts.begin(); pi != extra_opts.end(); ++pi)
     {
-        std::string name = pi.first;
-        Options options = pi.second;
+        std::string name = pi->first;
+        Options options = pi->second;
         std::vector<Stage*> stages = writer->findStage(name);
-        for (auto s: stages)
+        std::vector<Stage*>::iterator s;
+        for (s = stages.begin(); s != stages.end(); ++s)
         {
-            Options opts = s->getOptions();
-            for (auto o: options.getOptions())
-                opts.add(o);
-            s->setOptions(opts);
+            Options opts = (*s)->getOptions();
+            std::vector<Option>::iterator o;
+            for (o = options.getOptions().begin(); o != options.getOptions().end(); ++o)
+                opts.add(*o);
+            (*s)->setOptions(opts);
         }
     }
 
@@ -216,5 +185,4 @@ int Ground::execute()
     return 0;
 }
 
-} // kernel
 } // pdal

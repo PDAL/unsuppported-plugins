@@ -32,14 +32,12 @@
 * OF SUCH DAMAGE.
 ****************************************************************************/
 
-#include "View.hpp"
-#include <pdal/kernel/KernelFactory.hpp>
+#include "ViewKernel.hpp"
+#include "KernelFactory.hpp"
 
-CREATE_KERNEL_PLUGIN(view, pdal::kernel::View)
+CREATE_KERNEL_PLUGIN(view, pdal::ViewKernel)
 
 namespace pdal
-{
-namespace kernel
 {
 
 // Support for parsing point numbers.  Points can be specified singly or as
@@ -119,7 +117,7 @@ vector<boost::uint32_t> getListOfPoints(std::string p)
 
 } //namespace
 
-View::View()
+ViewKernel::ViewKernel()
     : Kernel()
     , m_inputFile("")
 {
@@ -127,7 +125,7 @@ View::View()
 }
 
 
-void View::validateSwitches()
+void ViewKernel::validateSwitches()
 {
     if (m_inputFile == "")
     {
@@ -138,7 +136,7 @@ void View::validateSwitches()
 }
 
 
-void View::addSwitches()
+void ViewKernel::addSwitches()
 {
     po::options_description* file_options = new po::options_description("file options");
 
@@ -152,7 +150,7 @@ void View::addSwitches()
     addPositionalSwitch("input", 1);
 }
 
-std::unique_ptr<Stage> View::makeReader(Options readerOptions)
+std::unique_ptr<Stage> ViewKernel::makeReader(Options readerOptions)
 {
     if (isDebug())
     {
@@ -165,7 +163,7 @@ std::unique_ptr<Stage> View::makeReader(Options readerOptions)
         readerOptions.add<std::string>("log", "STDERR");
     }
 
-    Stage* stage = AppSupport::makeReader(m_inputFile);
+    Stage* stage = KernelSupport::makeReader(m_inputFile);
     stage->setOptions(readerOptions);
     std::unique_ptr<Stage> reader_stage(stage);
 
@@ -173,7 +171,7 @@ std::unique_ptr<Stage> View::makeReader(Options readerOptions)
 }
 
 
-int View::execute()
+int ViewKernel::execute()
 {
     Options readerOptions;
     readerOptions.add<std::string>("filename", m_inputFile);
@@ -207,5 +205,4 @@ int View::execute()
     return 0;
 }
 
-} // kernel
 } // pdal

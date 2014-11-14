@@ -34,21 +34,19 @@
 
 #pragma once
 
-#include <pdal/kernel/Kernel.hpp>
+#include "Kernel.hpp"
 
 namespace pdal
 {
-namespace kernel
-{
 
-class PDAL_DLL PCL : public Kernel
+class PDAL_DLL PCLKernel : public Kernel
 {
 public:
-    SET_KERNEL_NAME("drivers.pcl.kernel", "PCL Kernel")
-    SET_KERNEL_LINK("http://pdal.io/kernels/drivers.pcl.kernel.html")
+    SET_KERNEL_NAME("kernels.pcl", "PCL Kernel")
+    SET_KERNEL_LINK("http://pdal.io/kernels/kernels.pcl.html")
     SET_KERNEL_ENABLED(true)
 
-    PCL();
+    PCLKernel();
     int execute();
 
 private:
@@ -64,5 +62,4 @@ private:
     bool m_bForwardMetadata;
 };
 
-} // kernel
 } // pdal

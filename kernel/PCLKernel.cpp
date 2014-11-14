@@ -32,27 +32,25 @@
  * OF SUCH DAMAGE.
  ****************************************************************************/
 
-#include "PCL.hpp"
+#include "PCLKernel.hpp"
 #include "../filters/PCLBlock.hpp"
-#include <pdal/kernel/KernelFactory.hpp>
+#include "KernelFactory.hpp"
 
 #include "../io/buffer/BufferReader.hpp"
 
-CREATE_KERNEL_PLUGIN(pcl, pdal::kernel::PCL)
+CREATE_KERNEL_PLUGIN(pcl, pdal::PCLKernel)
 
 namespace pdal
 {
-namespace kernel
-{
 
-PCL::PCL()
+PCLKernel::PCLKernel()
     : Kernel()
     , m_bCompress(false)
     , m_bForwardMetadata(false)
 {
 }
 
-void PCL::validateSwitches()
+void PCLKernel::validateSwitches()
 {
     if (m_inputFile == "")
         throw app_usage_error("--input/-i required");
@@ -63,7 +61,7 @@ void PCL::validateSwitches()
 }
 
 
-void PCL::addSwitches()
+void PCLKernel::addSwitches()
 {
     po::options_description* file_options =
         new po::options_description("file options");
@@ -90,7 +88,7 @@ void PCL::addSwitches()
     addPositionalSwitch("pcl", 1);
 }
 
-std::unique_ptr<Stage> PCL::makeReader(Options readerOptions)
+std::unique_ptr<Stage> PCLKernel::makeReader(Options readerOptions)
 {
     if (isDebug())
     {
@@ -103,7 +101,7 @@ std::unique_ptr<Stage> PCL::makeReader(Options readerOptions)
         readerOptions.add<std::string>("log", "STDERR");
     }
 
-    Stage* stage = AppSupport::makeReader(m_inputFile);
+    Stage* stage = KernelSupport::makeReader(m_inputFile);
     stage->setOptions(readerOptions);
     std::unique_ptr<Stage> reader_stage(stage);
 
@@ -111,7 +109,7 @@ std::unique_ptr<Stage> PCL::makeReader(Options readerOptions)
 }
 
 
-int PCL::execute()
+int PCLKernel::execute()
 {
     PointContext ctx;
 
@@ -161,7 +159,7 @@ int PCL::execute()
         (UserCallback *)new HeartbeatCallback();
 
     std::unique_ptr<Writer>
-        writer(AppSupport::makeWriter(m_outputFile, pclStage.get()));
+        writer(KernelSupport::makeWriter(m_outputFile, pclStage.get()));
 
     // Some options are inferred by makeWriter based on filename
     // (compression, driver type, etc).
@@ -196,6 +194,4 @@ int PCL::execute()
     return 0;
 }
 
-} // namespace kernel
 } // namespace pdal
-
