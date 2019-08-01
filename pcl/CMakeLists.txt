@@ -47,43 +47,6 @@ if (WIN32)
     add_definitions("-DNOMINMAX")
 endif()
 
-# PCL's configuration clobbers Boost find_package - do it again
-#find_package(Boost QUIET 1.52 COMPONENTS program_options iostreams filesystem system thread)
-
-#set (PCL_LIBRARIES "${PCL_COMMON_LIBRARY};${PCL_REGISTRATION_LIBRARY};${PCL_FEATURES_LIBRARY};${PCL_FILTERS_LIBRARY};${PCL_SEARCH_LIBRARY};${PCL_SEGMENTATION_LIBRARY};${PCL_IO_LIBRARY}")
-#
-# PCD Reader
-#
-PDAL_ADD_PLUGIN(pcd_reader_libname reader pcd
-    FILES
-        io/PcdHeader.hpp
-        io/PcdHeader.cpp
-        io/PcdReader.hpp
-        io/PcdReader.cpp
-    LINK_WITH
-        ${PCL_LIBRARIES}
-    INCLUDES
-        ${PCL_INCLUDE_DIRS}
-)
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU" )
-        set_source_files_properties(io/PcdReader.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
-    endif()
-
-#
-# PCD Writer
-#
-PDAL_ADD_PLUGIN(pcd_writer_libname writer pcd
-    FILES
-        io/PcdWriter.cpp
-    LINK_WITH
-        ${PCL_LIBRARIES}
-    INCLUDES
-        ${PCL_INCLUDE_DIRS}
-    )
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU" )
-        set_source_files_properties(io/PcdWriter.cpp PROPERTIES COMPILE_FLAGS -Wno-pedantic)
-    endif()
-
 #
 # PCLBlock Filter
 #
@@ -158,7 +121,9 @@ if (WITH_TESTS)
     PDAL_ADD_TEST(pdal_filters_pcl_block_test
     FILES
         test/PCLBlockFilterTest.cpp
-    LINK_WITH ${pcd_reader_libname} ${pcd_writer_libname} ${pclblock_libname}
-        ${pcl_libname} ${smooth_libname}
+    LINK_WITH
+        ${pclblock_libname}
+        ${pcl_libname}
+        ${smooth_libname}
     )
 endif()
